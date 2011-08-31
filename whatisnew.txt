@@ -1,0 +1,28 @@
+Version 0.1.1 beta:
+
+    + added convert to grayscale feature
+
+Version 0.1.2 beta:
+
+    + added convert to negative feature
+    + added horizontal scrollbar and vertical scrollbar if necessary
+    + set image's path on title instead of status bar like version 0.1.1
+    + added menubbar for second frame instead of using buttons
+    + set frame's size dynamically based on screen resolution
+
+Version 0.1.3 beta:
+
+    + added resize image feature
+    + added shrink by scale feature
+    + added progress bar
+    
+Version 0.1.4 beta
+    
+    + added drop image feature
+    + load whatisnew by text editor dynamically with notepad on Windows and gedit on Linux
+    + reduce the extra frame also the amount of code
+    + monitor modification and show warning when user exit 
+    + added save beside saveas 
+    + remove default image
+    + monitor mouse position
+    + added several acceleration keys

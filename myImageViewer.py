@@ -212,7 +212,6 @@ class MySimpleImageViewer(wx.App):
             scroll[0] = True
         if (image_size[1] > self.clientMaxSize[1]):
             scroll[1] = True
-        print 'Scroll: ' + str(scroll)
         return scroll
 
     #find possible ratio of scrollbar
@@ -342,33 +341,33 @@ class MySimpleImageViewer(wx.App):
         self.frame.SetClientSize(frame_size)
         self.panel.SetScale(0.1, 0.1)
     
+    # crop image by x,y coordinates
     def CropImage(self, event):      
         def CloseWindow(self, event): 
             self.frame2.Destroy()
-            
+        wx.SetCursor(wx.StockCursor(wx.CURSOR_CROSS));    
         self.frame2 = wx.Frame(self.frame, -1, 'Select crop position', pos = (0,0), size = (300, 200))
         panel = wx.PyScrolledWindow(self.frame2)
-        xA_label = wx.StaticText(panel, -1, 'xA', pos = (10, 20), size = (80, 20), style = wx.ALIGN_CENTER)
-        self.xA = wx.SpinCtrl(panel, -1, '', pos = (100, 20), size = (80, 20), style = wx.SP_WRAP)
+        xA_label = wx.StaticText(panel, -1, 'xA', pos = (10, 20), size = (80, 40), style = wx.ALIGN_CENTER)
+        self.xA = wx.SpinCtrl(panel, -1, '', pos = (100, 20), size = (80, 40), style = wx.SP_WRAP)
         self.xA.SetRange(0, self.image.GetHeight())
-        yA_label = wx.StaticText(panel, -1, 'yA', pos = (10, 50), size = (80, 20), style = wx.ALIGN_CENTER)
-        self.yA = wx.SpinCtrl(panel, -1, '', pos = (100, 50), size = (80, 20), style = wx.SP_WRAP)
+        yA_label = wx.StaticText(panel, -1, 'yA', pos = (10, 50), size = (80, 40), style = wx.ALIGN_CENTER)
+        self.yA = wx.SpinCtrl(panel, -1, '', pos = (100, 50), size = (80, 40), style = wx.SP_WRAP)
         self.yA.SetRange(0, self.image.GetWidth())
-        xB_label = wx.StaticText(panel, -1, 'xB', pos = (10, 80), size = (80, 20), style = wx.ALIGN_CENTER)
-        self.xB = wx.SpinCtrl(panel, -1, '', pos = (100, 80), size = (80, 20), style = wx.SP_WRAP)
+        xB_label = wx.StaticText(panel, -1, 'xB', pos = (10, 80), size = (80, 40), style = wx.ALIGN_CENTER)
+        self.xB = wx.SpinCtrl(panel, -1, '', pos = (100, 80), size = (80, 40), style = wx.SP_WRAP)
         self.xB.SetRange(0, self.image.GetHeight())
-        yB_label = wx.StaticText(panel, -1, 'yB', pos = (10, 110), size = (80, 20), style = wx.ALIGN_CENTER)
-        self.yB = wx.SpinCtrl(panel, -1, '', pos = (100, 110), size = (80, 20), style = wx.SP_WRAP)
+        yB_label = wx.StaticText(panel, -1, 'yB', pos = (10, 110), size = (80, 40), style = wx.ALIGN_CENTER)
+        self.yB = wx.SpinCtrl(panel, -1, '', pos = (100, 110), size = (80, 40), style = wx.SP_WRAP)
         self.yB.SetRange(0, self.image.GetWidth())
-        ok_btn = wx.Button(panel, wx.NewId(), label = 'OK', pos = (200, 30), size = (60, 20), style = wx.ID_OK)
-        cancel_btn = wx.Button(panel, wx.NewId(), label = 'Cancel', pos = (200, 100), size = (60, 20), style = wx.ID_CANCEL)
+        ok_btn = wx.Button(panel, wx.NewId(), label = 'OK', pos = (200, 30), size = (60, 40), style = wx.ID_OK)
+        cancel_btn = wx.Button(panel, wx.NewId(), label = 'Cancel', pos = (200, 100), size = (60, 40), style = wx.ID_CANCEL)
         self.frame2.Bind(wx.EVT_BUTTON, self.CropImageSelection, id = ok_btn.GetId())
         self.frame2.Bind(wx.EVT_BUTTON, self.CloseExtraWindow, id = cancel_btn.GetId())
         self.frame2.Show()
                         
     # get selected points
-    def CropImageSelection(self, event):
-        print str(event)
+    def CropImageSelection(self, event):        
         pA = wx.Point(self.xA.GetValue(), self.yA.GetValue())
         pB = wx.Point(self.xB.GetValue(), self.yB.GetValue())
         w = math.fabs(pB.x - pA.x)
@@ -392,7 +391,6 @@ class MySimpleImageViewer(wx.App):
         
     # close extra window
     def CloseExtraWindow(self, event):
-        print str(event)
         self.frame2.Destroy()
         
     # update title
@@ -405,16 +403,28 @@ class MySimpleImageViewer(wx.App):
         
     #save image
     def OnSaveAs(self, event):
-        dialog = wx.FileDialog(self.frame, message = 'Save your image', wildcard = 'JPEG file (*.jpg) | *.jpg', style = wx.SAVE)
+        dialog = wx.FileDialog(self.frame, message = 'Save your image', wildcard = "JPEG file (*.jpg, *.jpeg), PNG file (*.png), BMP file (*.bmp)| *.jpg, *.png, *.jpeg, *.bmp", style = wx.SAVE)
         if (dialog.ShowModal() == 5100):
-            self.WriteNewImage(dialog.GetPath(), self.image)
+            path = dialog.GetPath()
+            self.WriteNewImage(path, self.image)
         else:
             self.savePath = ""
         dialog.Destroy()
+        
+    # get file extension
+    def getExtension(self, path):
+        return os.path.splitext(path)[1]
 
     # write output
     def WriteNewImage(self, path, img):
-        img.SaveFile(path, wx.BITMAP_TYPE_JPEG)
+        ext = self.getExtension(path)
+        imgType = {
+            '.jpg': wx.BITMAP_TYPE_JPEG,
+            '.jpeg': wx.BITMAP_TYPE_JPEG,
+            '.png': wx.BITMAP_TYPE_PNG,
+            '.bmp': wx.BITMAP_TYPE_BMP
+        }
+        img.SaveFile(path, imgType.get(ext))
         self.UpdateTitle('saved')
         self.is_modified = False
                                

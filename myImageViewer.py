@@ -64,6 +64,7 @@ ID_RESIZE_IMAGE = 113
 ID_SHRINK_IMAGE = 114
 ID_WHATISNEW = 115
 ID_CROP_IMAGE = 116
+ID_EXPORT_GBA = 117
 #DEF_IMAGE = 'hspt.jpg'
 
 
@@ -74,6 +75,7 @@ class MySimpleImageViewer(wx.App):
         menu_File.Append(wx.ID_OPEN, '&Open\tCtrl-O', 'Click here to load image')
         menu_File.Append(wx.ID_SAVE, '&Save\tCtrl-S', 'Click here to save image')
         menu_File.Append(wx.ID_SAVEAS, 'Save &As', 'Save image as')
+        menu_File.Append(ID_EXPORT_GBA, '&Export GBA','Export to GBA');
         menu_File.AppendSeparator()
         menu_File.Append(wx.ID_EXIT, 'E&xit\tCtrl-X', 'Click here to terminate application')
         menu_Help = wx.Menu()
@@ -104,7 +106,7 @@ class MySimpleImageViewer(wx.App):
         self.frame.Bind(wx.EVT_MENU, self.WhatIsNew, id = ID_WHATISNEW)
         self.frame.Bind(wx.EVT_CLOSE, self.OnClose, id = self.frame.GetId())
         self.frame.Bind(wx.EVT_MENU, self.CropImage, id = ID_CROP_IMAGE)
-        
+        self.frame.Bind(wx.EVT_MENU, self.ExportToGBA, id = ID_EXPORT_GBA)
         
     def configuration(self):
         self.clientMaxSize = wx.GetDisplaySize()
@@ -293,6 +295,60 @@ class MySimpleImageViewer(wx.App):
         self.UpdateTitle('Negative')
         self.panel.Update()
         
+    #export to GBA
+    def ExportToGBA(self, event):
+        img = self.image
+        resizeDialog = wx.MessageDialog(parent = self.frame, caption= "Do you want to resize?", 
+			message = "GBA image's resolution has only have maximum value of 240x160. If you select No, this image will be automatically scaled to 240x160", style=wx.YES_NO)
+
+        if resizeDialog.ShowModal() == wx.ID_OK:
+            self.ResizeImage(self)
+        else:
+            img = img.Scale(width = 240, height = 160, quality = wx.IMAGE_QUALITY_HIGH)
+        colors = []
+        for j in range(img.GetHeight()):
+            for i in range(img.GetWidth()):
+                r = int(round(img.GetRed(i,j) * 31.0 / 255.0))
+                g = int(round(img.GetGreen(i,j) * 31.0 / 255.0))
+                b = int(round(img.GetBlue(i,j) * 31.0 / 255.0))
+                img.SetRGB(i, j, r, g, b)
+                colors.append(r|g<<5|b<<10)
+        self.image = img
+        self.newImage = img
+        self.imageBox.SetBitmap(wx.BitmapFromImage(self.image))
+        frame_size = self.AdjustFrameSize(self.image.GetSize())
+        scrollbar = self.IsEnableScrollbar(frame_size)
+        self.panel.EnableScrolling(scrollbar[0], scrollbar[1])
+        ratio = self.GetScrollbarRatio(frame_size)
+        self.panel.SetScrollbars(ratio[0], ratio[1], ratio[2], ratio[3])
+        self.panel.AdjustScrollbars()
+        self.frame.SetClientSize(frame_size)
+        self.panel.SetScale(0.1, 0.1)
+        self.panel.Update()
+        getVarNameDialog = wx.TextEntryDialog(None, message = "Please enter variable name", caption = "Name", defaultValue = "image")
+        if (getVarNameDialog.ShowModal() == wx.ID_OK):
+            varName = getVarNameDialog.GetValue()
+            size = img.GetWidth() * img.GetHeight()
+            f = open(varName + ".c", 'w')   
+            f.write("const unsigned short " + varName + "[" + str(size) + "] = {\n")
+            i=0
+            totalPixels = len(colors)
+            for i in range(totalPixels-1):
+                i = i + 1
+                f.write(hex(colors[i]) + ",")
+                if (i%9 == 8):
+                    f.write("\n")
+            f.write(hex(colors[totalPixels-1]) + "\n};")
+            f.close()
+            f = open(varName + ".h", 'w')
+            defineName = varName.upper() + "_BITMAP_H"
+            f.write("#ifndef " + defineName +"\n#define " + defineName + "\n\n")
+            f.write("extern const unsigned short " + varName + " [" + str(size) + "];\n");
+            f.write("#define " + varName.upper() + "_WIDTH " + str(img.GetWidth()) + "\n");
+            f.write("#define " + varName.upper() + "_HEIGHT " + str(img.GetHeight()) + "\n");
+            f.write("#endif")
+            wx.MessageDialog(None, message = "Exported " + varName + ".h and " + varName + ".c", style=wx.ID_OK).ShowModal()
+            
     #resize image
     def ResizeImage(self, event):
         self.UpdateTitle('resize image')
@@ -301,13 +357,13 @@ class MySimpleImageViewer(wx.App):
         getWidth = wx.TextEntryDialog(None, message = "Enter new width (current: " + str(w) + "): ", caption = "Resize Image", defaultValue = str(w))
         if getWidth.ShowModal() == wx.ID_OK:
             w = getWidth.GetValue()
-            getHeight = wx.TextEntryDialog(None, message = "Enter new width (current: " + str(h) + "): ", caption = "Resize Image", defaultValue = str(h))
+            getHeight = wx.TextEntryDialog(None, message = "Enter new height (current: " + str(h) + "): ", caption = "Resize Image", defaultValue = str(h))
             if getHeight.ShowModal() == wx.ID_OK:
                 h = getHeight.GetValue()
-        self.newImage = self.image.Scale((int) (w), (int) (h))
-        img = self.newImage
-        self.imageBox.SetBitmap(wx.BitmapFromImage(img))
-        frame_size = self.AdjustFrameSize(img.GetSize())
+        self.newImage = self.image.Scale(width = int(w), height = int(h), quality =  wx.IMAGE_QUALITY_HIGH)
+        self.image = self.newImage
+        self.imageBox.SetBitmap(wx.BitmapFromImage(self.image))
+        frame_size = self.AdjustFrameSize(self.image.GetSize())
         scrollbar = self.IsEnableScrollbar(frame_size)
         self.panel.EnableScrolling(scrollbar[0], scrollbar[1])
         ratio = self.GetScrollbarRatio(frame_size)
